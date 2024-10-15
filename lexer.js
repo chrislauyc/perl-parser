@@ -110,6 +110,50 @@ export class Lexer {
     }
   }
   //TODO: implement regexState
+  regexState(token){
+    const self = this.currentNode;
+    const { regexType, escaped } = self;
+    if(regexType === "s"){
+      const {replacement} = self;
+      switch(token){
+        case "/":{
+          if(!escaped){
+            if(replacement === null){
+              self.replacement = "";
+            }
+            else {
+              this.popNode();
+              this.currentNode.children.push(self);
+            }
+          }
+          else{
+            if(replacement === null){
+              self.pattern += token;
+            }
+            else{
+              self.replacement += token;
+            }
+          }
+          break;
+        }
+        default:{
+          
+        }
+      }
+    }
+    switch(token){
+      case "/":{
+        if(!escaped){
+          
+          else {
+            this.popNode();
+            
+          }
+        }
+        break;
+      }
+    }
+  }
   expressionContext(token) {
     let stateChanged = true;
     switch (token) {
@@ -149,7 +193,10 @@ export class Lexer {
       this.currentNode = {
         ...getBaseNode(),
         type: states.Regex,
-        regexType: "m",
+        regexType: "s",
+        pattern: "",
+        replacement: null,
+        escaped: false,
       };
       break;
     case String.raw`m\/`:
@@ -157,7 +204,9 @@ export class Lexer {
       this.currentNode = {
         ...getBaseNode(),
         type: states.Regex,
-        regexType: "s",
+        pattern: "",
+        regexType: "m",
+        escaped: false,
       };
       break;
     default:

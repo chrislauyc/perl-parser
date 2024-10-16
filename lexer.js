@@ -43,7 +43,7 @@ export class Lexer {
             break;
           }
         case states.Regex: {
-            blockState(token);
+            regexState(token);
             break;
           }
         
@@ -87,12 +87,10 @@ export class Lexer {
   }
   commentState(token) {
     const self = this.currentNode;
-    switch (token) {
-    case "\n": {
-        this.popNode();
-        this.currentNode.children.push(self);
-        break;
-      }
+    if(token === "\n"){
+      this.popNode();
+      this.currentNode.children.push(self);
+      
     }
     currentNode.children.push(token);
   }
@@ -109,49 +107,39 @@ export class Lexer {
       }
     }
   }
-  //TODO: implement regexState
+  
   regexState(token){
     const self = this.currentNode;
     const { regexType, escaped } = self;
+    if(token === "\\"){
+      self.escaped = !escaped;
+    }
     if(regexType === "s"){
       const {replacement} = self;
-      switch(token){
-        case "/":{
-          if(!escaped){
-            if(replacement === null){
-              self.replacement = "";
-            }
-            else {
-              this.popNode();
-              this.currentNode.children.push(self);
-            }
-          }
-          else{
-            if(replacement === null){
-              self.pattern += token;
-            }
-            else{
-              self.replacement += token;
-            }
-          }
-          break;
+      if(token === "/" && !escaped){
+        if(replacement === null){
+          self.replacement = "";
         }
-        default:{
-          
+        else {
+          this.popNode();
+          this.currentNode.children.push(self);
         }
+        return;
+      }
+      if(self.replacement === null){
+        self.pattern += token;
+      }
+      else{
+        self.replacement += token;
       }
     }
-    switch(token){
-      case "/":{
-        if(!escaped){
-          
-          else {
-            this.popNode();
-            
-          }
-        }
-        break;
+    else {
+      if(token === "/" && !escaped){
+        this.popNode();
+        this.currentNode.children.push(self);
+        return;
       }
+      self.pattern += token;
     }
   }
   expressionContext(token) {

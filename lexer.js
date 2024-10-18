@@ -1,3 +1,4 @@
+import {Tokenizer} from "./tokenizer.js";
 const states = {
       "String": "String",
       Code: "Code",
@@ -6,47 +7,77 @@ const states = {
       Regex: "Regex",
       Parentheses: "Parentheses",
     };
-function getBaseNode(){
+
+function nodeFactory(type){
   return {
     children: [],
     whiteSpaces: {},
+    type,
   };
 }
 export class Lexer {
-  currentNode = {
-      children: [],
-      type: states.Code,
-    };
+  _currentNode = nodeFactory(states.Code);
+  get currentNode(){
+    if(!this._currentNode){
+      throw new Error(`currentNode is ${value}. token at ${this.tokenCount}`)
+    }
+    return this._currentNode;
+  }
+  set currentNode(value){
+    this._currentNode = value;
+  }
   nodeStack = [];
+  tokenCount = 0;
+  init(){
+   this.currentNode = nodeFactory(states.Code); 
+    this.nodeStack = [];
+    this.tokenCount = 0;
+  }
   /**
    * @param {string}
   */
   parse(code){
+    const tokenizer = new Tokenizer();
+    tokenizer.tokenize(code);
+    let token = tokenizer.next();
     
+    while(token !== null){
+      this.tokenCount++;
+      this.goToState(token);
+      token = tokenizer.next();
+    }
+    while(this.nodeStack.length > 0){
+      const childNode = this.currentNode;
+      this.popNode();
+      this.currentNode.children.push(childNode);
+    }
+    console.log(this.tokenCount,this.currentNode)
   }
   goToState(token){
-    switch (this.currentState) {
+    const currentState = this.currentNode.type;
+    switch (currentState) {
         case states.String: {
-          stringState(token);
+          this.stringState(token);
           break;
         }
         case states.Code: {
-            codeState(token);
+            this.codeState(token);
             break;
           }
         case states.Comment: {
-            commentState(token);
+            this.commentState(token);
             break;
           }
         case states.Block: {
-            blockState(token);
+            this.blockState(token);
             break;
           }
         case states.Regex: {
-            regexState(token);
+            this.regexState(token);
             break;
           }
-        
+        default:
+          throw new Error(`State not implemented: ${currentState}`);
       }
 
   }
@@ -92,7 +123,7 @@ export class Lexer {
       this.currentNode.children.push(self);
       
     }
-    currentNode.children.push(token);
+    this.currentNode.children.push(token);
   }
   blockState(token) {
     const self = this.currentNode;
@@ -149,38 +180,27 @@ export class Lexer {
     case '"':
       this.pushNode();
       this.currentNode = {
-        ...getBaseNode(),
-        type: states.String,
+        ...nodeFactory(states.String),
         delimiter: token,
         escaped: false,
       };
       break;
     case "#":
       this.pushNode();
-      this.currentNode = {
-        ...getBaseNode(),
-        type: states.Comment,
-      };
+      this.currentNode = nodeFactory(states.Comment);
       break;
     case "{":
       this.pushNode();
-      this.currentNode = {
-        ...getBaseNode(),
-        type: states.Block,
-      };
+      this.currentNode = nodeFactory(states.Block);
       break;
     case "(":
       this.pushNode();
-      this.currentNode = {
-        ...getBaseNode(),
-        type: states.Parentheses,
-      };
+      this.currentNode = nodeFactory(states.Parentheses);
       break;
     case String.raw`s\/`:
       this.pushNode();
       this.currentNode = {
-        ...getBaseNode(),
-        type: states.Regex,
+        ...nodeFactory(states.Regex),
         regexType: "s",
         pattern: "",
         replacement: null,
@@ -190,8 +210,7 @@ export class Lexer {
     case String.raw`m\/`:
       this.pushNode();
       this.currentNode = {
-        ...getBaseNode(),
-        type: states.Regex,
+        ...nodeFactory(states.Regex),
         pattern: "",
         regexType: "m",
         escaped: false,
@@ -207,7 +226,7 @@ export class Lexer {
   pushTokenToChildren(token) {
     if (/^\s*$/.test(token)) {
       const length = this.currentNode.children.length +
-      Object.keys(currentNode.whiteSpaces).length;
+      Object.keys(this.currentNode.whiteSpaces).length;
       this.currentNode.whiteSpaces[length] = token;
       return;
     }

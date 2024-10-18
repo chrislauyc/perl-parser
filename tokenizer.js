@@ -6,18 +6,37 @@ export class Tokenizer{
   tokenize(code){
     const matcher = this.createMatcher();
     this._matches = code.matchAll(matcher);
+    
   }
   /**
    * @returns {string | null}
   */
   next(){
-    return this._matches?.next()?.[0] || null;
+    const match = this._matches.next().value;
+    if(typeof match?.[0] === "string"){
+      return match[0];
+    }
+    return null;
   }
   createMatcher(){
     const variableMatcher = String.raw`([\$@%]?\w+(::\w+)?)`;
-    const operatorMatcher = "(" + ["<=>", "=>", String.raw`\+=`, "-=", "==", "&&", "=~", "=!",
+    const operatorMatcher = "(" + [
+      "<=>", 
+      "=>", 
+      String.raw`\+=`, 
+      "-=", 
+      "==", 
+      "&&", 
+      "=~", 
+      "=!",
       String.raw`\|\|`,
-      "!=", "<=", ">=", "->"].join("|") + ")";
+      "!=",
+      "<=", 
+      ">=", 
+      "->",
+      String.raw`s\/`,
+      String.raw`m\/`,
+      ].join("|") + ")";
 
     const spaceMatcher = String.raw`\s+`;
     const newlineMatcher = String.raw`\n`;

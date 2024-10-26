@@ -59,10 +59,26 @@ export class Parser {
         if (typeof lexicalNode === "string") {
             switch (lexicalNode) {
                 case "sub":
+                    this.pushNode();
+                    this.currentNode = {
+                        ...astNodeFactory(states.Function),
+                        name: ""
+                    };
                     break;
                 case "package":
+                    this.pushNode();
+                    this.currentNode = {
+                        ...astNodeFactory(states.Package),
+                        name: ""
+                    };
                     break;
                 case "my":
+                    this.pushNode();
+                    this.currentNode = {
+                        ...astNodeFactory(states.VariableDeclaration),
+                        names: [],
+                        multiple: false
+                    };
                     break;
                 default: {
                     if (new RegExp(variableMatcher).test(lexicalNode)) {
@@ -72,6 +88,8 @@ export class Parser {
                             ...astNodeFactory(states.Identifier),
                             value: lexicalNode
                         };
+                    } else {
+                        this.currentNode.children.push(lexicalNode);
                     }
                     break;
                 }
@@ -81,6 +99,11 @@ export class Parser {
             //push to lexicalStack
         }
     }
-    pushNode() {}
-    popNode() {}
+    pushNode() {
+        this.astStack.push(this.currentNode);
+        this.currentNode = null;
+    }
+    popNode() {
+        this.currentNode = this.astStack.pop();
+    }
 }
